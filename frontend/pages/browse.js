@@ -21,7 +21,7 @@ export default function Browse() {
   const fetchProducts = async () => {
     setLoading(true);
     try {
-      const res = await axios.get('http://localhost:5000/api/products'); 
+      const res = await axios.get('https://qcu-marketplace-b08m.onrender.com/api/products'); 
       setProducts(res.data);
     } catch (error) { console.error(error); } 
     finally { setLoading(false); }

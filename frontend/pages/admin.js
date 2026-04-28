@@ -50,13 +50,13 @@ export default function AdminDashboard() {
   const fetchAdminData = async () => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const prodUrl = searchTerm ? `http://localhost:5000/api/admin/products?search=${searchTerm}` : 'http://localhost:5000/api/admin/products';
+      const prodUrl = searchTerm ? `https://qcu-marketplace-b08m.onrender.com/api/admin/products?search=${searchTerm}` : 'https://qcu-marketplace-b08m.onrender.com/api/admin/products';
       const [statsRes, usersRes, prodsRes, reportsRes, logsRes] = await Promise.all([
-        axios.get('http://localhost:5000/api/admin/stats', config),
-        axios.get('http://localhost:5000/api/admin/users', config),
+        axios.get('https://qcu-marketplace-b08m.onrender.com/api/admin/stats', config),
+        axios.get('https://qcu-marketplace-b08m.onrender.com/api/admin/users', config),
         axios.get(prodUrl, config),
-        axios.get('http://localhost:5000/api/admin/reports', config),
-        axios.get('http://localhost:5000/api/admin/logs', config) 
+        axios.get('https://qcu-marketplace-b08m.onrender.com/api/admin/reports', config),
+        axios.get('https://qcu-marketplace-b08m.onrender.com/api/admin/logs', config) 
       ]);
       setStats(statsRes.data);
       setUsers(usersRes.data);
@@ -70,7 +70,7 @@ export default function AdminDashboard() {
   const fetchChatHistory = async () => {
     if (!selectedChatUser) return;
     try {
-      const res = await axios.get(`http://localhost:5000/api/transactions/messages/${selectedChatUser._id}/null`, {
+      const res = await axios.get(`https://qcu-marketplace-b08m.onrender.com/api/transactions/messages/${selectedChatUser._id}/null`, {
         headers: { Authorization: `Bearer ${user.token}` }
       });
       setAdminMessages(res.data);
@@ -81,7 +81,7 @@ export default function AdminDashboard() {
     if (!chatMessage.trim()) return;
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      await axios.post('http://localhost:5000/api/transactions/messages', {
+      await axios.post('https://qcu-marketplace-b08m.onrender.com/api/transactions/messages', {
         receiverId: selectedChatUser._id, text: `[OFFICIAL ADMIN]: ${chatMessage}`, productId: null
       }, config);
       setChatMessage('');
@@ -92,7 +92,7 @@ export default function AdminDashboard() {
   const handleDeleteProduct = async (id) => {
     if (!confirm("Permanently delete this product?")) return;
     try {
-      await axios.delete(`http://localhost:5000/api/admin/products/${id}`, { headers: { Authorization: `Bearer ${user.token}` } });
+      await axios.delete(`https://qcu-marketplace-b08m.onrender.com/api/admin/products/${id}`, { headers: { Authorization: `Bearer ${user.token}` } });
       toast.success("Product removed");
       fetchAdminData();
     } catch (error) { toast.error("Action failed"); }
@@ -215,7 +215,7 @@ export default function AdminDashboard() {
                         <td className="p-5 font-medium">{p.title}</td>
                         <td className="p-5 text-slate-500 text-xs">{p.sellerName}</td>
                         <td className="p-5 text-right space-x-3">
-                           {p.status === 'Pending' && <button onClick={() => axios.put(`http://localhost:5000/api/admin/products/${p._id}/approve`, {}, { headers: { Authorization: `Bearer ${user.token}` }}).then(() => fetchAdminData())} className="text-green-600 font-semibold text-xs hover:underline">Approve</button>}
+                           {p.status === 'Pending' && <button onClick={() => axios.put(`https://qcu-marketplace-b08m.onrender.com/api/admin/products/${p._id}/approve`, {}, { headers: { Authorization: `Bearer ${user.token}` }}).then(() => fetchAdminData())} className="text-green-600 font-semibold text-xs hover:underline">Approve</button>}
                            <button onClick={() => {setSelectedChatUser({_id: p.sellerId, name: p.sellerName}); setIsChatOpen(true);}} className="text-blue-500 font-semibold text-xs hover:underline">Chat</button>
                            <button onClick={() => handleDeleteProduct(p._id)} className="text-red-500 font-semibold text-xs hover:underline">Delete</button>
                         </td>
@@ -237,7 +237,7 @@ export default function AdminDashboard() {
                         <td className="p-5 font-medium">{u.name}</td><td className="p-5 text-slate-500 text-xs">{u.email}</td>
                         <td className="p-5 text-right space-x-4">
                           <button onClick={() => {setSelectedChatUser(u); setIsChatOpen(true);}} className="text-blue-500 font-semibold text-xs hover:underline">Chat</button>
-                          {u.email !== 'chandlerszxc@gmail.com' && <button onClick={() => axios.delete(`http://localhost:5000/api/admin/users/${u._id}`, { headers: { Authorization: `Bearer ${user.token}` }}).then(() => fetchAdminData())} className="text-red-500 font-semibold text-xs hover:underline">Remove</button>}
+                          {u.email !== 'chandlerszxc@gmail.com' && <button onClick={() => axios.delete(`https://qcu-marketplace-b08m.onrender.com/api/admin/users/${u._id}`, { headers: { Authorization: `Bearer ${user.token}` }}).then(() => fetchAdminData())} className="text-red-500 font-semibold text-xs hover:underline">Remove</button>}
                         </td>
                       </tr>
                     ))}
@@ -254,7 +254,7 @@ export default function AdminDashboard() {
                      {r.status === 'pending' && (
                        <div className="w-full md:w-72 space-y-2">
                           <input type="text" placeholder="Warning message..." className="w-full border rounded-xl p-3 text-xs outline-none focus:border-[#8A1C30]" onChange={(e) => setWarningInputs({...warningInputs, [r._id]: e.target.value})} />
-                          <button onClick={() => axios.put(`http://localhost:5000/api/admin/reports/${r._id}/resolve`, { warningMessage: warningInputs[r._id] || "" }, { headers: { Authorization: `Bearer ${user.token}` } }).then(() => fetchAdminData())} className="w-full bg-green-600 text-white font-semibold py-3 rounded-xl text-xs">Resolve & Send Warning</button>
+                          <button onClick={() => axios.put(`https://qcu-marketplace-b08m.onrender.com/api/admin/reports/${r._id}/resolve`, { warningMessage: warningInputs[r._id] || "" }, { headers: { Authorization: `Bearer ${user.token}` } }).then(() => fetchAdminData())} className="w-full bg-green-600 text-white font-semibold py-3 rounded-xl text-xs">Resolve & Send Warning</button>
                        </div>
                      )}
                   </div>

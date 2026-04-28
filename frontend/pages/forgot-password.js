@@ -14,7 +14,7 @@ export default function ForgotPassword() {
     e.preventDefault();
     setLoading(true);
     try {
-      await axios.post('http://localhost:5000/api/users/forgot-password', { email });
+      await axios.post('https://qcu-marketplace-b08m.onrender.com/api/users/forgot-password', { email });
       setIsSent(true); // Pag success, ipakita ang "Check your email"
       toast.success("Reset link sent!");
     } catch (error) {

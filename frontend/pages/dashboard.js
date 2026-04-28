@@ -18,7 +18,7 @@ export default function Dashboard() {
 
   const fetchMyListings = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/products/my-listings', {
+      const res = await axios.get('https://qcu-marketplace-b08m.onrender.com/api/products/my-listings', {
         headers: { Authorization: `Bearer ${user.token}` }
       });
       setProducts(res.data);

@@ -21,7 +21,7 @@ export default function MyListings() {
 
   const fetchMyListings = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/products/my-listings', {
+      const res = await axios.get('https://qcu-marketplace-b08m.onrender.com/api/products/my-listings', {
         headers: { Authorization: `Bearer ${user.token}` }
       });
       setListings(res.data);
@@ -43,7 +43,7 @@ export default function MyListings() {
   const handleUpdateSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.put(`http://localhost:5000/api/products/${editingProduct._id}`, editForm, {
+      await axios.put(`https://qcu-marketplace-b08m.onrender.com/api/products/${editingProduct._id}`, editForm, {
         headers: { Authorization: `Bearer ${user.token}` }
       });
       toast.success("Listing updated successfully!");
@@ -57,7 +57,7 @@ export default function MyListings() {
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to permanently delete this listing?")) return;
     try {
-      await axios.delete(`http://localhost:5000/api/products/${id}`, {
+      await axios.delete(`https://qcu-marketplace-b08m.onrender.com/api/products/${id}`, {
         headers: { Authorization: `Bearer ${user.token}` }
       });
       toast.success("Listing deleted.");

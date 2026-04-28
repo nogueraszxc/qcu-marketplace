@@ -42,7 +42,7 @@ export default function ProductDetails() {
 
   const fetchProduct = async () => {
     try {
-      const res = await axios.get(`http://localhost:5000/api/products/${id}`);
+      const res = await axios.get(`https://qcu-marketplace-b08m.onrender.com/api/products/${id}`);
       setProduct(res.data);
     } catch (error) {
       toast.error("Product not found");
@@ -52,7 +52,7 @@ export default function ProductDetails() {
 
   const fetchMessages = async () => {
     try {
-      const res = await axios.get(`http://localhost:5000/api/transactions/messages/${product.sellerId}/${product._id}`, {
+      const res = await axios.get(`https://qcu-marketplace-b08m.onrender.com/api/transactions/messages/${product.sellerId}/${product._id}`, {
         headers: { Authorization: `Bearer ${user.token}` }
       });
       setMessages(res.data);
@@ -73,7 +73,7 @@ export default function ProductDetails() {
   const handleBuySubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('http://localhost:5000/api/transactions/buy-request', {
+      await axios.post('https://qcu-marketplace-b08m.onrender.com/api/transactions/buy-request', {
         ...buyForm,
         productId: product._id,
         productTitle: product.title,
@@ -90,7 +90,7 @@ export default function ProductDetails() {
     e.preventDefault();
     if (!newMessage.trim()) return;
     try {
-      await axios.post('http://localhost:5000/api/transactions/messages', {
+      await axios.post('https://qcu-marketplace-b08m.onrender.com/api/transactions/messages', {
         receiverId: product.sellerId,
         productId: product._id,
         text: newMessage
@@ -104,7 +104,7 @@ export default function ProductDetails() {
   const handleReportSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('http://localhost:5000/api/reports', {
+      await axios.post('https://qcu-marketplace-b08m.onrender.com/api/reports', {
         product: product._id,
         reportedUser: product.sellerId,
         message: reportMessage

@@ -42,7 +42,7 @@ export default function SellItem() {
     
     setLoading(true);
     try {
-      await axios.post('http://localhost:5000/api/products', formData, {
+      await axios.post('https://qcu-marketplace-b08m.onrender.com/api/products', formData, {
         headers: { Authorization: `Bearer ${user.token}` }
       });
       

@@ -46,7 +46,7 @@ export default function Transactions() {
   const fetchData = async () => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const res = await axios.get('http://localhost:5000/api/transactions/my-transactions', config);
+      const res = await axios.get('https://qcu-marketplace-b08m.onrender.com/api/transactions/my-transactions', config);
       setTransactions(res.data);
       setAdminThread(res.data.adminThread);
     } catch (error) { console.error(error); }
@@ -59,7 +59,7 @@ export default function Transactions() {
       // Gamitin lang natin ang 'admin' string, bahala na backend doon
       const otherId = selectedTx.isAdminThread ? 'admin' : (selectedTx.buyerId === user._id ? selectedTx.sellerId : selectedTx.buyerId);
       
-      const res = await axios.get(`http://localhost:5000/api/transactions/messages/${otherId}/${pId}`, {
+      const res = await axios.get(`https://qcu-marketplace-b08m.onrender.com/api/transactions/messages/${otherId}/${pId}`, {
         headers: { Authorization: `Bearer ${user.token}` }
       });
       setMessages(res.data);
@@ -74,7 +74,7 @@ export default function Transactions() {
       const receiverId = selectedTx.isAdminThread ? 'admin' : (selectedTx.buyerId === user._id ? selectedTx.sellerId : selectedTx.buyerId);
       const productId = selectedTx.isAdminThread ? null : selectedTx.productId;
       
-      await axios.post('http://localhost:5000/api/transactions/messages', {
+      await axios.post('https://qcu-marketplace-b08m.onrender.com/api/transactions/messages', {
         receiverId, productId, text: newMessage
       }, { headers: { Authorization: `Bearer ${user.token}` } });
       
