@@ -57,3 +57,11 @@ Obtain/document the applicable rights for both the seal and photograph first. Th
 - [MongoDB Atlas](https://www.mongodb.com/docs/atlas/)
 
 Dependency review: Next.js16.4.2 and current locked runtime packages pass npm audit --omit=dev with zero reported advisories. Five high audit entries remain in the development-only eslint-config-next → fast-glob → micromatch → braces chain; no patched braces release is reported. Do not run audit fix --force, which proposes downgrading the framework lint configuration. Treat build/lint inputs as trusted, monitor for an upstream fix, and recheck before each release.
+
+## Current production endpoints
+
+The operator selected the existing Vercel Hobby frontend at https://qcu-marketplace.vercel.app and Render Free backend at https://qcu-marketplace-b08m.onrender.com. Atlas Cluster0 is active. The operator uses a public contact email and has not supplied a public mailing address; the address remains blank. This is not a legal compliance certification.
+
+The operator has explicitly requested displaying the supplied university seal and entrance photograph. NEXT_PUBLIC_SHOW_UNIVERSITY_ASSETS=true controls this display preference only. It does not assert authorization: QCU_AUTHORIZED and NEXT_PUBLIC_QCU_ASSETS_AUTHORIZED remain false. Copyright credits identify the seal, state that the photograph creator/license is unverified, retain the independent-operator notice, and provide a rights-contact route.
+
+Brevo SMTP uses port 2525 with TLS and a verified Chandler Noguera sender at nogueraszxc@gmail.com. The public support contact remains noguera.chandler.espenilla@gmail.com. Secrets are stored in the hosting dashboards and excluded from Git. SMTP authentication was verified; actual application email delivery must also be checked in Brevo logs. Never commit database connection strings, private proxy keys, SMTP keys, owner passwords, or reset URLs.

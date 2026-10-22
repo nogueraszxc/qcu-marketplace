@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 export default async function handler(req, res) {
-  const enabled = process.env.NODE_ENV === 'development' || (process.env.NEXT_PUBLIC_QCU_ASSETS_AUTHORIZED === 'true' && process.env.QCU_AUTHORIZED === 'true');
+  const enabled = process.env.NODE_ENV === 'development' || process.env.NEXT_PUBLIC_SHOW_UNIVERSITY_ASSETS === 'true' || (process.env.NEXT_PUBLIC_QCU_ASSETS_AUTHORIZED === 'true' && process.env.QCU_AUTHORIZED === 'true');
   if (!enabled || !['campus', 'seal'].includes(req.query.asset) || !['GET', 'HEAD'].includes(req.method)) return res.status(404).end();
   try {
     const bytes = await readFile(path.join(process.cwd(), 'assets', 'brand', `${req.query.asset}.png`));
