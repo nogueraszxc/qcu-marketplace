@@ -15,7 +15,7 @@ Browser calls stay at `/api` on the Vercel website. A server-side rewrite forwar
 
 ## Current blockers
 
-No hosting accounts, domain alias, production Atlas database, SMTP delivery, or public operator address has been configured here. No deployment has been performed. Do not copy the existing development `.env` or local MongoDB files into production. The user has not supplied permission to use the university seal; the photo’s license is unverified. Both supplied assets are disabled and return 404 in the default production build. Copyright credits are present at `/copyright` and do not assert permission or endorsement.
+Hosting accounts and existing service aliases have been identified; production database connectivity, SMTP delivery, or recovery email provider has been configured here. No deployment has been performed. Do not copy the existing development `.env` or local MongoDB files into production. The user has not supplied permission to use the university seal; the photo’s license is unverified. Both supplied assets are disabled and return 404 in the default production build. Copyright credits are present at `/copyright` and do not assert permission or endorsement.
 
 ## Prepare the repository
 
@@ -25,7 +25,7 @@ The current folder is not a Git repository. Create a private repository containi
 
 Create a Node web service with root directory `backend`, Node24, build `npm ci --omit=dev`, start `npm start`, and health path `/api/health`. Use one instance; shared rate-limit storage and a single retention-job owner are required before scaling. Choose the service/region/plan deliberately; no plan has been purchased. Configure the values from `backend/.env.production.example` in the provider dashboard:
 
-1. Set the actual Atlas URI, operator address, and SMTP credentials. Never paste credentials into chat, source code, or frontend public variables.
+1. Set the actual Atlas URI and SMTP credentials. The operator has supplied a public contact email and no public mailing address; leave OPERATOR_ADDRESS empty rather than inventing one. This configuration decision is not a legal compliance determination. Never paste credentials into chat, source code, or frontend public variables.
 2. Generate a random shared key locally with `node -e "process.stdout.write(require('crypto').randomBytes(32).toString('hex'))"`. Store it only as the private `BACKEND_PROXY_KEY` in both hosts.
 3. Set `APP_ORIGIN` to the exact stable Vercel production origin, with HTTPS and no trailing slash/path. No wildcards or arbitrary preview URLs. The backend refuses incomplete public configuration.
 4. Keep `QCU_AUTHORIZED=false` and `QCU_BRANDING_ENABLED=false`.

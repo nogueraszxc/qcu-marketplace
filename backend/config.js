@@ -12,7 +12,7 @@ function createConfig(env = process.env) {
   const publicLaunchEnabled = env.PUBLIC_LAUNCH_ENABLED === 'true';
   const qcuAuthorized = env.QCU_AUTHORIZED === 'true';
   const operator = { name: env.OPERATOR_NAME?.trim() || 'Chandler Noguera', email: env.OPERATOR_EMAIL?.trim() || 'noguera.chandler.espenilla@gmail.com', address: env.OPERATOR_ADDRESS?.trim() || '' };
-  if (publicLaunchEnabled && (!production || Object.values(operator).some(value => !value) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(operator.email))) throw new Error('Public launch requires production HTTPS, operator identity/contact/address, and a configured operator address.');
+  if (publicLaunchEnabled && (!production || !operator.name || !operator.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(operator.email))) throw new Error('Public launch requires production HTTPS, an operator name, and a valid public contact email.');
   if (env.QCU_BRANDING_ENABLED === 'true' && !qcuAuthorized) throw new Error('University branding requires documented authorization.');
   if (production && !env.MONGO_URI) throw new Error('Production MONGO_URI is required.');
   const backendProxyKey = env.BACKEND_PROXY_KEY || '';

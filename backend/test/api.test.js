@@ -187,7 +187,7 @@ test('database persistence across connection restart and scheduled retention sem
   await S.purgeRetention(config);
   assert.equal(await S.Message.exists({ _id: stale._id }), null); assert.ok(await S.Report.exists({ _id: pending._id })); assert.equal(await S.Report.exists({ _id: resolved._id }), null);
   assert.throws(() => createConfig({ NODE_ENV: 'production', APP_ORIGIN: 'http://example.test' }), /HTTPS/);
-  assert.throws(() => createConfig({ NODE_ENV: 'production', APP_ORIGIN: 'https://example.test', PUBLIC_LAUNCH_ENABLED: 'true' }), /operator/);
+  assert.throws(() => createConfig({ NODE_ENV: 'production', APP_ORIGIN: 'https://example.test', PUBLIC_LAUNCH_ENABLED: 'true', OPERATOR_EMAIL: 'invalid' }), /operator/);
 });
 
 test('cancelled meetup deletion releases availability; completed warranty evidence survives pseudonymization', async () => {
@@ -246,4 +246,16 @@ test('hosted proxy rejects direct requests and applies separate client and IPv6-
   const { clientRateKey } = require('../lib/proxy');
   assert.equal(clientRateKey('2001:db8:1234:5600::1'), clientRateKey('2001:db8:1234:56ff::2'));
   assert.notEqual(clientRateKey('2001:db8:1234:5600::1'), clientRateKey('2001:db8:1234:5700::1'));
+});
+
+test('public config accepts email contact without inventing a mailing address and retains launch safeguards', () => {
+  const env = { NODE_ENV: 'production', PUBLIC_LAUNCH_ENABLED: 'true', APP_ORIGIN: 'https://marketplace.example.test', MONGO_URI: 'mongodb://127.0.0.1/isolated_config_only', OPERATOR_NAME: 'Test Operator', OPERATOR_EMAIL: 'operator@example.test', BACKEND_PROXY_KEY: 'x'.repeat(32), SMTP_HOST: 'smtp.example.test', SMTP_FROM: 'operator@example.test', SMTP_PORT: '2525' };
+  const config = createConfig(env);
+  assert.equal(config.operator.address, '');
+  assert.equal(config.operator.email, 'operator@example.test');
+  assert.equal(config.smtp.port, 2525);
+  assert.throws(() => createConfig({ ...env, OPERATOR_EMAIL: 'invalid' }), /contact email/);
+  assert.throws(() => createConfig({ ...env, BACKEND_PROXY_KEY: '' }), /BACKEND_PROXY_KEY/);
+  assert.throws(() => createConfig({ ...env, SMTP_HOST: '' }), /password-recovery/);
+  assert.throws(() => createConfig({ ...env, APP_ORIGIN: 'http://marketplace.example.test' }), /HTTPS/);
 });
