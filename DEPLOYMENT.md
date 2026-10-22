@@ -15,11 +15,11 @@ Browser calls stay at `/api` on the Vercel website. A server-side rewrite forwar
 
 ## Current blockers
 
-Hosting accounts and existing service aliases have been identified; production database connectivity, SMTP delivery, or recovery email provider has been configured here. No deployment has been performed. Do not copy the existing development `.env` or local MongoDB files into production. The user has not supplied permission to use the university seal; the photo’s license is unverified. Both supplied assets are disabled and return 404 in the default production build. Copyright credits are present at `/copyright` and do not assert permission or endorsement.
+Existing Vercel Hobby and Render Free services have been identified. Atlas Free Cluster0 has been resumed. Updated source has not yet been published. The private proxy key, SMTP sender verification/credentials, database connectivity, and live account flows still need verification. Do not copy the existing development `.env` or local MongoDB files into production. The user has not supplied permission to use the university seal; the photo’s license is unverified. Both supplied assets are disabled and return 404 in the default production build. Copyright credits are present at `/copyright` and do not assert permission or endorsement.
 
 ## Prepare the repository
 
-The current folder is not a Git repository. Create a private repository containing the root README/DEPLOYMENT files and `frontend`/`backend`. Exclude `.env`, `.local`, `.next*`, node_modules, database files, runtime logs, and credentials. The `.env.example` and `.env.production.example` templates contain placeholders only and may be included. The original supplied images live outside `public/` and are served through a gated Next API route, not an unconditional static path.
+The local source folder is not a Git repository. A separate deployment checkout is prepared from the existing nogueraszxc/qcu-marketplace repository, with authorization from the operator to update it. Include the root README/DEPLOYMENT files and `frontend`/`backend`. Exclude `.env`, `.local`, `.next*`, node_modules, database files, runtime logs, and credentials. The `.env.example` and `.env.production.example` templates contain placeholders only and may be included. The original supplied images live outside `public/` and are served through a gated Next API route, not an unconditional static path.
 
 ## Configure Render
 
