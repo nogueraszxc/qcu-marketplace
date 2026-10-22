@@ -9,6 +9,7 @@ import toast from 'react-hot-toast';
 import Icon from '../components/Icon';
 import { formatPrice } from '../lib/demo';
 import { createPolicyConsent, policyLinks } from '../lib/policies';
+import { CAMPUS_NAMES } from '../lib/campuses';
 
 export default function SellItem() {
   const { user, isPreview } = useAuth();
@@ -22,7 +23,7 @@ export default function SellItem() {
   const [error, setError] = useState('');
   const [imageError, setImageError] = useState('');
   const [previewReady, setPreviewReady] = useState(false);
-  const [form, setForm] = useState({ title: '', description: '', price: '', category: 'Books', condition: 'Good', image: '', warrantyTerms: '' });
+  const [form, setForm] = useState({ title: '', description: '', price: '', category: 'Books', condition: 'Good', location: '', image: '', warrantyTerms: '' });
   const update = (event) => { setPreviewReady(false); setForm({ ...form, [event.target.name]: event.target.value }); };
   const upload = (event) => {
     const file = event.target.files?.[0];
@@ -63,7 +64,7 @@ export default function SellItem() {
         <section className="seller-form-section"><div className="seller-section-heading"><span aria-hidden="true">02</span><div><h2>Make the details count.</h2><p>Keep it clear, honest, and easy to find.</p></div></div>
           <div className="account-form"><div className="field"><label htmlFor="item-title">Item name <span aria-hidden="true">*</span></label><input ref={titleInput} id="item-title" name="title" value={form.title} onChange={update} placeholder="e.g. Calculus textbook, 7th edition" maxLength={120} required aria-describedby="item-title-hint" /><span className="field-hint" id="item-title-hint">A specific title helps the right person find it.</span></div>
             <div className="field"><label htmlFor="item-description">Description</label><textarea id="item-description" name="description" value={form.description} onChange={update} rows={4} maxLength={2000} placeholder="What’s included? Any marks or wear? Share what a buyer would want to know." /><span className="field-hint">Include the size, edition, or model when it helps.</span></div>
-            <div className="form-grid seller-form-row"><div className="field"><label htmlFor="item-category">Category</label><select id="item-category" name="category" value={form.category} onChange={update}>{['Books', 'Electronics', 'Clothing', 'Food', 'Services', 'Others'].map((category) => <option key={category}>{category}</option>)}</select></div><div className="field"><label htmlFor="item-condition">Condition</label><select id="item-condition" name="condition" value={form.condition} onChange={update}>{['New', 'Like New', 'Good', 'Fair'].map((condition) => <option key={condition}>{condition}</option>)}</select></div></div>
+            <div className="field"><label htmlFor="item-campus">Meet-up campus <span aria-hidden="true">*</span></label><select id="item-campus" name="location" value={form.location} onChange={update} required aria-describedby="item-campus-hint"><option value="" disabled>Choose a campus</option>{CAMPUS_NAMES.map(campus => <option key={campus}>{campus}</option>)}</select><span className="field-hint" id="item-campus-hint">Choose the campus where you can meet. Agree on a public meeting spot in the inbox.</span></div><div className="form-grid seller-form-row"><div className="field"><label htmlFor="item-category">Category</label><select id="item-category" name="category" value={form.category} onChange={update}>{['Books', 'Electronics', 'Clothing', 'Food', 'Services', 'Others'].map((category) => <option key={category}>{category}</option>)}</select></div><div className="field"><label htmlFor="item-condition">Condition</label><select id="item-condition" name="condition" value={form.condition} onChange={update}>{['New', 'Like New', 'Good', 'Fair'].map((condition) => <option key={condition}>{condition}</option>)}</select></div></div>
           </div>
         </section>
         <section className="seller-form-section seller-price-section"><div className="seller-section-heading"><span aria-hidden="true">03</span><div><h2>A fair price. A fresh start.</h2><p>Set your asking price in Philippine pesos.</p></div></div><div className="field seller-price-field"><label htmlFor="item-price">Price in pesos <span aria-hidden="true">*</span></label><div><span aria-hidden="true">₱</span><input id="item-price" name="price" type="number" min="0.01" step="0.01" inputMode="decimal" placeholder="0.00" value={form.price} onChange={update} required /></div></div></section>

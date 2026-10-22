@@ -3,6 +3,7 @@ import Image from 'next/image';
 import Brand from './Brand';
 import Icon from './Icon';
 import { universityAssetsEnabled } from '../lib/branding';
+import { CAMPUS_LABEL } from '../lib/campuses';
 
 const steps = [
   ['Discover', 'Find your next campus essential.'],
@@ -29,7 +30,7 @@ export default function LoginShell({ children }) {
           <p className="login-story-description">Find your next campus essential. Pass on what you no longer need, and keep good things going around.</p>
           <div className="login-location">
             <span className="login-location-icon"><Icon name="pin" size={22} /></span>
-            <div><strong>It starts with your community.</strong><p>San Bartolome · San Francisco · Batasan Hills</p></div>
+            <div><strong>It starts with your community.</strong><p>{CAMPUS_LABEL}</p></div>
           </div>
         </section>
 
