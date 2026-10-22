@@ -10,7 +10,9 @@ export function proxy(request: NextRequest) {
     && !request.nextUrl.pathname.startsWith('/api/')
     && request.nextUrl.hostname.endsWith('.vercel.app')
     && request.nextUrl.hostname !== 'qcu-marketplace.vercel.app') {
-    const destination = new URL(request.nextUrl.pathname + request.nextUrl.search, 'https://qcu-marketplace.vercel.app');
+    const destination = new URL('https://qcu-marketplace.vercel.app');
+    destination.pathname = request.nextUrl.pathname;
+    destination.search = request.nextUrl.search;
     return NextResponse.redirect(destination, 307);
   }
   if (request.nextUrl.pathname.startsWith('/api/')) {
