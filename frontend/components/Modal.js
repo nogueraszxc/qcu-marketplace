@@ -1,0 +1,3 @@
+import {Dialog,DialogBackdrop,DialogPanel,DialogTitle} from '@headlessui/react';
+import Icon from './Icon';
+export default function Modal({open,onClose,title,children,description}){return <Dialog transition className="product-dialog motion-dialog" open={open} onClose={onClose}><DialogBackdrop className="dialog-backdrop"/><div className="dialog-container"><DialogPanel className="dialog-panel"><div className="dialog-heading"><DialogTitle as="h2">{title}</DialogTitle><button className="icon-button" aria-label="Close dialog" onClick={onClose}><Icon name="x" size={18}/></button></div>{description&&<p className="dialog-description">{description}</p>}{children}</DialogPanel></div></Dialog>;}

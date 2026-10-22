@@ -1,0 +1,23 @@
+:root{--motion-fast:140ms;--motion-control:200ms;--motion-panel:280ms;--motion-reveal:420ms;--motion-ease:cubic-bezier(.2,.75,.25,1)}
+.motion-page{min-width:0;width:100%}.route-progress{position:fixed;top:0;left:0;height:3px;width:100%;z-index:1500;pointer-events:none;transform:scaleX(0);transform-origin:left;background:var(--gold);opacity:0}
+html[data-route-pending] .route-progress{opacity:1;animation:route-progress 900ms var(--motion-ease) forwards}
+@keyframes route-progress{from{transform:scaleX(.08)}to{transform:scaleX(.88)}}
+.hero-title-line{display:block;overflow:clip;padding-bottom:.08em;margin-bottom:-.08em}.hero-title-line>span{display:block;animation:headline-arrive 650ms var(--motion-ease) backwards}.hero-title-line:nth-child(2)>span{animation-delay:70ms}.hero-title-line:nth-child(3)>span{animation-delay:140ms}
+@keyframes headline-arrive{from{opacity:1;transform:translateY(75%) rotate(2deg)}to{opacity:1;transform:translateY(0) rotate(0)}}
+.hero-scene{position:absolute;inset:0;--scene-x:0px;--scene-y:0px}.hero-object{transition:translate 650ms var(--motion-ease),box-shadow 250ms var(--motion-ease);animation:object-arrive 650ms var(--motion-ease) backwards}
+.hero-object.object-book{--object-angle:-9deg;animation-delay:90ms;translate:calc(var(--scene-x)*-.7) calc(var(--scene-y)*-.7)}
+.hero-object.object-headphones{--object-angle:9deg;animation-delay:170ms;translate:calc(var(--scene-x)*.65) calc(var(--scene-y)*.65)}
+.hero-object.object-coffee{--object-angle:-5deg;animation-delay:240ms;translate:var(--scene-x) var(--scene-y)}
+@keyframes object-arrive{from{opacity:.3;transform:translateY(25px) rotate(calc(var(--object-angle) - 4deg)) scale(.95)}to{opacity:1;transform:translateY(0) rotate(var(--object-angle)) scale(1)}}
+.btn>svg,.hero-sell>svg,.footer-links a>svg,.ws-text-link>svg{transition:transform var(--motion-control) var(--motion-ease)}
+.btn:hover>svg:last-child,.btn:focus-visible>svg:last-child,.hero-sell:hover>svg,.footer-links a:hover>svg,.ws-text-link:hover>svg{transform:translateX(3px)}
+.btn:active{transform:scale(.98)}.product-card{transition:transform 220ms var(--motion-ease),box-shadow 220ms,border-color 220ms}.product-image{transition:transform 550ms var(--motion-ease)}
+@media(hover:hover) and (pointer:fine){.product-card:hover{transform:translateY(-5px)}.product-card:hover .product-image{transform:scale(1.045)}}
+.save-button[aria-pressed=true] svg{animation:save-confirm 260ms var(--motion-ease)}
+@keyframes save-confirm{50%{transform:scale(1.2)}}
+.nav-link:after{transition:transform 220ms var(--motion-ease)}
+.account-story-copy,.account-art-book{animation:soft-arrive 500ms var(--motion-ease) backwards}.account-art-book{animation-delay:100ms}
+@keyframes soft-arrive{from{opacity:1;translate:0 18px}to{opacity:1;translate:0 0}}
+.motion-dialog{transition:opacity 180ms ease}.motion-dialog .dialog-panel{transition:opacity var(--motion-panel) var(--motion-ease),transform var(--motion-panel) var(--motion-ease)}.motion-dialog[data-closed]{opacity:0}.motion-dialog[data-closed] .dialog-panel{opacity:0;transform:translateY(14px) scale(.98)}.motion-dialog[data-leave] .dialog-panel{transition-duration:180ms}
+.mobile-navigation,.account-dropdown,.market-mobile-filters.visible{animation:soft-arrive 200ms var(--motion-ease) backwards}
+@media(prefers-reduced-motion:reduce){.hero-title-line>span,.hero-object,.account-story-copy,.account-art-book,.mobile-navigation,.account-dropdown,.market-mobile-filters.visible,.save-button svg,.route-progress{animation:none!important}.hero-object{translate:none!important}.product-card,.product-image,.btn,.btn>svg,.hero-sell>svg,.footer-links a>svg,.motion-dialog,.motion-dialog .dialog-panel{transition:none!important}.product-card:hover,.product-card:hover .product-image,.btn:active,.btn:hover>svg:last-child,.hero-sell:hover>svg,.footer-links a:hover>svg{transform:none!important}}

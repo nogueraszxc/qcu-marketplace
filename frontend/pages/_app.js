@@ -1,15 +1,20 @@
 import '../styles/globals.css';
+import '../styles/marketplace.css';
+import '../styles/account.css';
+import '../styles/login.css';
+import '../styles/workspace.css';
+import '../styles/admin.css';
+import '../styles/motion.css';
+import '../styles/policies.css';
+import '../styles/implementation.css';
+import '../styles/admin-glass.css';
+import '../styles/client-glass.css';
+import App from 'next/app';
+import Head from 'next/head';
 import Layout from '../components/Layout';
-import { AuthProvider } from '../context/AuthContext';
-
-function MyApp({ Component, pageProps }) {
-  return (
-    <AuthProvider>
-      <Layout>
-        <Component {...pageProps} />
-      </Layout>
-    </AuthProvider>
-  );
-}
-
-export default MyApp;
+import {AuthProvider} from '../context/AuthContext';
+import {ConsentProvider} from '../context/ConsentContext';
+import CookieConsent from '../components/CookieConsent';
+import {Toaster} from 'react-hot-toast';
+export default function MyApp({Component,pageProps,router}){const publicIndexPage=['/','/browse','/about','/safety','/privacy','/terms','/cookies','/refunds','/copyright','/accessibility'].includes(router.pathname);const indexable=process.env.NODE_ENV==='production'&&process.env.NEXT_PUBLIC_SEARCH_INDEXING==='true'&&publicIndexPage;return <><Head><title>Campus Exchange · Buy, sell, connect</title><meta name="robots" content={indexable?"index,follow":"noindex,nofollow"}/></Head><AuthProvider><ConsentProvider><Layout><Component {...pageProps}/></Layout><CookieConsent/><Toaster position="bottom-right" containerStyle={{bottom:"calc(var(--toast-bottom, 24px) + var(--cookie-notice-space, 0px))"}} toastOptions={{duration:4000,style:{borderRadius:'14px',fontSize:'14px',border:'1px solid #ded9dd',boxShadow:'0 10px 40px #241e2415'},success:{iconTheme:{primary:'#76253d',secondary:'#fff'}}}}/></ConsentProvider></AuthProvider></>;}
+MyApp.getInitialProps=async context=>App.getInitialProps(context);

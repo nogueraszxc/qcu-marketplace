@@ -1,186 +1,110 @@
 import Head from 'next/head';
+import Link from 'next/link';
 import { useAuth } from '../context/AuthContext';
 import { useEffect, useState } from 'react';
+import api, { apiError } from '../lib/api';
+import Icon from '../components/Icon';
 
+const profileFields = (user) => ({ name: user?.name || '', bio: user?.bio || '', contactPreference: user?.contactPreference || 'inbox' });
 export default function Profile() {
-  const { user } = useAuth();
-  const [mounted, setMounted] = useState(false);
-
-  // --- EDIT MODE STATES ---
-  const [isEditing, setIsEditing] = useState(false);
-  const [phone, setPhone] = useState('');
-  const [bio, setBio] = useState('');
-
-  // Para maiwasan ang hydration error sa Next.js
+  const { user, loading, isPreview, updateUser, clearSession } = useAuth();
+  const [editing, setEditing] = useState(false);
+  const [details, setDetails] = useState(() => profileFields(user));
+  const [draft, setDraft] = useState(details);
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [privacyBusy, setPrivacyBusy] = useState('');
+  const [privacyError, setPrivacyError] = useState('');
+  const [privacyMessage, setPrivacyMessage] = useState('');
+  const [requestType, setRequestType] = useState('access');
+  const [requestMessage, setRequestMessage] = useState('');
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteConfirmation, setDeleteConfirmation] = useState('');
+  const [deleted, setDeleted] = useState(false);
+  const [requests, setRequests] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(!isPreview);
+  const [historyError, setHistoryError] = useState('');
   useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  const getInitials = (userObj) => {
-    if (!userObj) return 'U';
-    const name = userObj.name || userObj.displayName || userObj.email || 'User';
-    const names = name.split(' ');
-    if (names.length >= 2) return (names[0][0] + names[names.length - 1][0]).toUpperCase();
-    return name.substring(0, 2).toUpperCase();
+    if (isPreview || !user?._id) return;
+    let active = true;
+    api.get('/users/me/privacy-requests').then(({ data }) => { if (active) setRequests(Array.isArray(data.requests) ? data.requests : []); })
+      .catch((err) => { if (active) setHistoryError(apiError(err, 'We could not load your request history.')); })
+      .finally(() => { if (active) setHistoryLoading(false); });
+    return () => { active = false; };
+  }, [isPreview, user?._id]);
+  const refreshRequests = async () => {
+    if (isPreview || historyLoading) return;
+    setHistoryLoading(true); setHistoryError('');
+    try { const { data } = await api.get('/users/me/privacy-requests'); setRequests(Array.isArray(data.requests) ? data.requests : []); }
+    catch (err) { setHistoryError(apiError(err, 'We could not load your request history.')); }
+    finally { setHistoryLoading(false); }
   };
-
-  // Function kapag pinindot ang SAVE button
-  const handleSave = () => {
-    // Dito mo i-ccall ang axios.put papuntang backend mo in the future para i-save sa MongoDB
-    // const res = await axios.put('/api/users/profile', { phone, bio }, ...)
-    
-    setIsEditing(false); // Babalik sa normal view pagkatapos i-save
+  const name = details.name || user?.name || 'Your profile';
+  const initials = name.split(' ').filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase();
+  const save = async (event) => {
+    event.preventDefault(); if (busy) return; setError(''); setMessage('');
+    if (draft.name.trim().length < 2 || draft.name.trim().length > 80) { setError('Use a name between 2 and 80 characters.'); return; }
+    if (isPreview) { setDetails(draft); setEditing(false); setMessage('Profile updated on this preview screen only. No account data was saved.'); return; }
+    setBusy(true);
+    try { const { data } = await api.patch('/users/me', { ...draft, name: draft.name.trim() }); updateUser(data.user); setDetails(profileFields(data.user)); setDraft(profileFields(data.user)); setEditing(false); setMessage('Your profile has been updated.'); }
+    catch (err) { setError(apiError(err, 'Your profile could not be saved. Your changes are still here; please try again.')); }
+    finally { setBusy(false); }
   };
-
-  if (!mounted) return null;
-
-  const displayName = user?.name || user?.displayName || 'Loading...';
-
-  return (
-    <div className="min-h-screen bg-[#f8fafc] w-full flex flex-col pb-20">
-      <Head>
-        <title>My Profile | QCU Marketplace</title>
-      </Head>
-
-      <div className="max-w-4xl mx-auto px-4 py-10 w-full flex-grow">
-        <h1 className="text-3xl font-extrabold text-gray-900 mb-8">My Profile</h1>
-
-        {/* PROFILE CARD */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden mb-6">
-          <div className="h-28 bg-[#800000]"></div>
-          
-          <div className="px-8 pb-8 relative">
-            <div className="absolute -top-12 left-8 w-24 h-24 bg-[#FFD700] rounded-full border-4 border-white flex items-center justify-center text-3xl font-black text-[#800000] shadow-md select-none">
-              {getInitials(user)}
-            </div>
-            
-            {/* --- DYNAMIC EDIT / SAVE BUTTON --- */}
-            <div className="flex justify-end pt-4 mb-4">
-              {isEditing ? (
-                <button 
-                  onClick={handleSave} 
-                  className="flex items-center gap-1.5 bg-[#800000] px-5 py-2 rounded-lg text-xs font-bold text-white hover:bg-[#600000] transition-colors shadow-sm"
-                >
-                  {/* Save Icon */}
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
-                  Save
-                </button>
-              ) : (
-                <button 
-                  onClick={() => setIsEditing(true)} 
-                  className="flex items-center gap-1.5 border border-gray-200 px-5 py-2 rounded-lg text-xs font-bold text-gray-600 hover:bg-gray-50 transition-colors shadow-sm"
-                >
-                  {/* Edit Pencil Icon */}
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
-                  Edit
-                </button>
-              )}
-            </div>
-
-            <div className="mt-2 border-b border-gray-100 pb-6">
-               <h2 className="text-2xl font-black text-gray-900 uppercase tracking-tight">{displayName}</h2>
-               <p className="text-sm font-medium text-gray-500 mb-6">{user?.email || 'Loading...'}</p>
-
-               <div className="space-y-6">
-                  {/* EMAIL SECTION */}
-                  <div className="flex gap-4">
-                     <svg className="w-5 h-5 text-gray-400 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
-                     <div className="w-full">
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Email</p>
-                        <p className="text-sm font-semibold text-gray-800">{user?.email || 'Loading...'}</p>
-                     </div>
-                  </div>
-
-                  {/* PHONE SECTION (Dynamic Input) */}
-                  <div className="flex gap-4">
-                     <svg className="w-5 h-5 text-gray-400 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
-                     <div className="w-full max-w-xl">
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Phone</p>
-                        {isEditing ? (
-                          <input 
-                            type="text" 
-                            placeholder="e.g., 09XXXXXXXXX" 
-                            value={phone}
-                            onChange={(e) => setPhone(e.target.value)}
-                            className="w-full border border-gray-200 rounded-md py-2 px-3 text-sm focus:outline-none focus:border-gray-400 mt-1 transition-colors"
-                          />
-                        ) : (
-                          <p className="text-sm font-semibold text-gray-800">{phone || 'Not set'}</p>
-                        )}
-                     </div>
-                  </div>
-
-                  {/* BIO SECTION (Dynamic Input) */}
-                  <div className="flex gap-4">
-                     <svg className="w-5 h-5 text-gray-400 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-                     <div className="w-full max-w-xl">
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">Bio</p>
-                        {isEditing ? (
-                          <textarea 
-                            placeholder="Tell others about yourself..." 
-                            value={bio}
-                            onChange={(e) => setBio(e.target.value)}
-                            rows="3"
-                            className="w-full border border-gray-200 rounded-md py-2 px-3 text-sm focus:outline-none focus:border-gray-400 mt-1 resize-none transition-colors"
-                          ></textarea>
-                        ) : (
-                          <p className="text-sm font-semibold text-gray-800">{bio || 'No bio yet.'}</p>
-                        )}
-                     </div>
-                  </div>
-               </div>
-            </div>
-          </div>
-        </div>
-
-        {/* 3 STATS CARDS */}
-        <div className="grid grid-cols-3 gap-4 mb-6">
-           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex flex-col items-center justify-center hover:shadow-md transition-shadow">
-              <div className="w-10 h-10 bg-red-50 rounded-full flex items-center justify-center mb-3">
-                 <svg className="w-5 h-5 text-[#800000]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
-              </div>
-              <h3 className="text-2xl font-black text-[#800000]">0</h3>
-              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mt-1">Listings</p>
-           </div>
-           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex flex-col items-center justify-center hover:shadow-md transition-shadow">
-              <div className="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center mb-3">
-                 <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
-              </div>
-              <h3 className="text-2xl font-black text-blue-600">0</h3>
-              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mt-1">Purchases</p>
-           </div>
-           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex flex-col items-center justify-center hover:shadow-md transition-shadow">
-              <div className="w-10 h-10 bg-yellow-50 rounded-full flex items-center justify-center mb-3">
-                 <svg className="w-5 h-5 text-[#FFD700]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path></svg>
-              </div>
-              <h3 className="text-2xl font-black text-[#FFD700]">0</h3>
-              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mt-1">Items Sold</p>
-           </div>
-        </div>
-
-        {/* ACCOUNT INFO */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
-           <h3 className="text-sm font-bold text-gray-900 mb-6">Account Info</h3>
-           <div className="space-y-4">
-              <div className="flex justify-between items-center text-sm">
-                 <span className="text-gray-500 font-medium">Member since</span>
-                 <span className="font-semibold text-gray-900">April 2026</span>
-              </div>
-              <div className="flex justify-between items-center text-sm">
-                 <span className="text-gray-500 font-medium">Account role</span>
-                 <span className="font-semibold text-gray-900 capitalize">{user?.role || 'User'}</span>
-              </div>
-              <div className="flex justify-between items-center text-sm">
-                 <span className="text-gray-500 font-medium">Rating</span>
-                 <span className="font-semibold text-gray-900 flex items-center gap-1">
-                   <svg className="w-4 h-4 text-[#FFD700]" fill="currentColor" viewBox="0 0 24 24"><path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path></svg>
-                   5/5.0
-                 </span>
-              </div>
-           </div>
-        </div>
-
+  const startPrivacyAction = () => { setPrivacyError(''); setPrivacyMessage(''); };
+  const exportData = async () => {
+    if (privacyBusy) return; startPrivacyAction();
+    if (isPreview) { setPrivacyMessage('Design preview: no account export was requested or downloaded.'); return; }
+    setPrivacyBusy('export');
+    try {
+      const response = await api.get('/users/me/export', { responseType: 'blob' });
+      const url = URL.createObjectURL(response.data);
+      const link = document.createElement('a'); link.href = url; link.download = 'campus-exchange-personal-data.json'; document.body.appendChild(link); link.click(); link.remove(); window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setPrivacyMessage('Your personal-data export has been downloaded as a JSON file. Store it somewhere private.');
+    } catch (err) { setPrivacyError(apiError(err, 'The export could not be downloaded. Please sign in again and retry.')); }
+    finally { setPrivacyBusy(''); }
+  };
+  const requestPrivacy = async (event) => {
+    event.preventDefault(); if (privacyBusy) return; startPrivacyAction();
+    if (requestMessage.trim().length < 10) { setPrivacyError('Add at least 10 characters so the project team can understand your request.'); return; }
+    if (isPreview) { setPrivacyMessage('Design preview: your privacy request was not sent.'); return; }
+    setPrivacyBusy('request');
+    try { const { data } = await api.post('/users/me/privacy-requests', { type: requestType, message: requestMessage.trim() }); if (data.request) setRequests((current) => [data.request, ...current]); setRequestMessage(''); setPrivacyMessage('Your privacy request has been recorded for the project team to review.'); }
+    catch (err) { setPrivacyError(apiError(err, 'Your request could not be recorded. Please try again.')); }
+    finally { setPrivacyBusy(''); }
+  };
+  const deleteAccount = async (event) => {
+    event.preventDefault(); if (privacyBusy) return; startPrivacyAction();
+    if (deleteConfirmation !== 'DELETE') { setPrivacyError('Type DELETE exactly to confirm this action.'); return; }
+    if (isPreview) { setPrivacyMessage('Design preview: no account or listings were deleted.'); return; }
+    setPrivacyBusy('delete');
+    try { await api.delete('/users/me', { data: { password: deletePassword, confirmation: deleteConfirmation } }); setDeletePassword(''); setDeleteConfirmation(''); setDeleted(true); clearSession('Your account deletion has been completed.'); }
+    catch (err) { setPrivacyError(apiError(err, 'Your account could not be deleted. Check your password or submit a deletion request below.')); }
+    finally { setPrivacyBusy(''); }
+  };
+  if (loading) return <div className="page-shell empty-state" role="status">Loading your profile…</div>;
+  if (deleted) return <div className="page-shell empty-state"><Head><title>Account deleted | Campus Exchange</title></Head><Icon name="check-circle" size={38} /><h1 className="page-heading">Your account has been deleted.</h1><p>You have been signed out. Read the Privacy Notice for information about any records retained.</p><Link href="/privacy" className="btn btn-secondary">Privacy Notice</Link><Link href="/" className="btn btn-primary">Back to marketplace</Link></div>;
+  return <div className="page-shell profile-page">
+    <Head><title>My profile | QCU Campus Exchange</title></Head>
+    <header className="profile-page-heading"><div><span className="eyebrow">A PERSON BEHIND EVERY GOOD FIND</span><h1 className="page-heading">My profile</h1><p className="muted">Your own little corner of the campus exchange.</p></div><Link href="/dashboard" className="btn btn-secondary"><Icon name="grid" size={19} />My dashboard</Link></header>
+    <nav className="profile-navigation" aria-label="Your account"><Link href="/profile" aria-current="page">Profile</Link><Link href="/my-listings">My listings <Icon name="arrow-up-right" size={16} /></Link><Link href="/transactions">Inbox <Icon name="arrow-up-right" size={16} /></Link></nav>
+    <div className="profile-grid">
+      <aside className="profile-side"><section className="profile-identity"><div className="profile-identity-top"><span>CAMPUS EXCHANGE / ACCOUNT</span><Icon name="sparkles" size={26} /></div><span className="profile-avatar">{initials}</span><h2>{name}</h2><p className="profile-email">{user?.email}</p><span className="profile-member-label"><Icon name="user" size={17} />{user?.role === 'admin' ? 'Administrator' : 'Marketplace member'}</span><div className="profile-identity-bottom"><span>GOOD THINGS<br />GO AROUND.</span><Icon name="arrow-up-right" size={38} /></div></section>
+      <section className="panel profile-account-info"><span className="eyebrow">ACCOUNT DETAILS</span><dl><div><dt>Account role</dt><dd>{user?.role === 'admin' ? 'Administrator' : 'Member'}</dd></div><div><dt>Member since</dt><dd>{user?.createdAt ? new Date(user.createdAt).toLocaleDateString('en-PH', { month: 'long', year: 'numeric' }) : 'Not available'}</dd></div><div><dt>Email verification</dt><dd>{user?.emailVerified ? 'Email verified' : 'Not verified'}</dd></div></dl><p className="account-service-note">Email verification does not verify student status or university affiliation.</p></section></aside>
+      <div className="profile-main"><section className="panel profile-details-panel"><div className="profile-section-heading"><div><span className="eyebrow">A LITTLE ABOUT YOU</span><h2>Put a name to the find.</h2></div>{!editing && <button type="button" className="btn btn-secondary" onClick={() => { setDraft(details); setEditing(true); setMessage(''); }}><Icon name="edit" size={18} />Edit profile</button>}</div>
+      {isPreview && <div className="profile-edit-note"><Icon name="eye" size={21} /><span>Design preview. Changes stay on this screen and are not saved to a real account.</span></div>}
+      {editing ? <form className="account-form profile-edit-form" onSubmit={save}><div className="field"><label htmlFor="profile-name">Display name</label><input id="profile-name" autoComplete="name" value={draft.name} minLength={2} maxLength={80} required onChange={(e) => setDraft({ ...draft, name: e.target.value })} /></div><div className="field"><label htmlFor="profile-contact">Contact preference</label><select id="profile-contact" value={draft.contactPreference} onChange={(e) => setDraft({ ...draft, contactPreference: e.target.value })}><option value="inbox">Discuss details in the marketplace inbox</option><option value="campus-meetup">Arrange a public campus meetup through the inbox</option></select><span className="field-hint">Keep phone numbers and personal contact details out of public profile text.</span></div><div className="field"><label htmlFor="profile-bio">About you</label><textarea id="profile-bio" rows={5} maxLength={500} placeholder="A course, a hobby, or your favorite kind of find." value={draft.bio} onChange={(e) => setDraft({ ...draft, bio: e.target.value })} /><span className="field-hint">{draft.bio.length}/500 characters</span></div>{error && <p role="alert" className="inline-error"><Icon name="alert" size={19} />{error}</p>}<div className="seller-form-actions"><button type="button" className="btn btn-secondary" disabled={busy} onClick={() => { setEditing(false); setError(''); }}>Cancel</button><button type="submit" className="btn btn-primary" disabled={busy}><Icon name="check" size={19} />{busy ? 'Saving…' : isPreview ? 'Apply preview' : 'Save profile'}</button></div></form> : <dl className="profile-details"><div><dt><Icon name="mail" size={19} />Email address</dt><dd>{user?.email || 'Not available'}</dd></div><div><dt><Icon name="message" size={19} />Contact preference</dt><dd>{details.contactPreference === 'campus-meetup' ? 'Public campus meetup, arranged through the inbox' : 'Marketplace inbox'}</dd></div><div><dt><Icon name="user" size={19} />About me</dt><dd className={!details.bio ? 'muted' : ''}>{details.bio || 'Give the community a little introduction.'}</dd></div></dl>}
+      {message && <p className="account-success" role="status"><Icon name="check-circle" size={22} />{message}</p>}</section>
+      <div className="profile-bottom-grid"><section className="profile-security-card"><Icon name="lock" size={26} /><h3>Your account. Keep it yours.</h3><p>Use a strong password, and keep your sign-in details to yourself.</p><Link href="/forgot-password">Reset password<Icon name="arrow-right" size={19} /></Link></section><section className="profile-community-card"><Icon name="shield" size={26} /><h3>A little care goes a long way.</h3><p>Chat in the inbox, meet in a public place, and inspect before you pay.</p><Link href="/safety">Campus trading guide<Icon name="arrow-right" size={19} /></Link></section></div>
+      <section className="panel profile-privacy-panel" aria-labelledby="privacy-center-heading"><span className="eyebrow">YOUR DATA, YOUR CHOICES</span><h2 id="privacy-center-heading">Privacy center</h2><p>Download your information, ask the project team to review a data concern, or delete your account. Read the <Link href="/privacy">Privacy Notice</Link> for scope and retention details.</p>
+      <div className="profile-export-row"><div><h3>A copy of your information</h3><p>Includes account and marketplace records associated with you.</p></div><button type="button" className="btn btn-secondary" disabled={!!privacyBusy} onClick={exportData}><Icon name="download" size={19} />{privacyBusy === 'export' ? 'Preparing…' : 'Download my data'}</button></div>
+      <form className="account-form profile-request-form" onSubmit={requestPrivacy}><h3>Send a data-rights request</h3><div className="field"><label htmlFor="privacy-request-type">Request type</label><select id="privacy-request-type" value={requestType} onChange={(e) => setRequestType(e.target.value)}><option value="access">Access my personal data</option><option value="correction">Correct inaccurate information</option><option value="deletion">Request deletion assistance</option><option value="objection">Object to specific processing</option></select></div><div className="field"><label htmlFor="privacy-request-message">What would you like the team to review?</label><textarea id="privacy-request-message" value={requestMessage} minLength={10} maxLength={2000} required rows={4} onChange={(e) => setRequestMessage(e.target.value)} placeholder="Describe your request without sharing passwords or payment account details." /></div><button type="submit" className="btn btn-primary" disabled={!!privacyBusy}>{privacyBusy === 'request' ? 'Recording request…' : 'Submit privacy request'}</button></form>
+      <section className="profile-request-history" aria-labelledby="request-history-heading"><div><h3 id="request-history-heading">Your request history</h3>{!isPreview && <button type="button" className="btn btn-ghost" disabled={historyLoading} onClick={refreshRequests}>{historyLoading ? 'Refreshing…' : 'Refresh'}</button>}</div>{isPreview ? <p>Design preview. No live privacy requests are loaded.</p> : historyLoading ? <p role="status">Loading your requests…</p> : historyError ? <p className="inline-error" role="alert">{historyError}</p> : requests.length === 0 ? <p>You have not submitted a data-rights request yet.</p> : <ul>{requests.map((request) => <li key={request._id}><div><strong>{({ access: 'Data access', correction: 'Correction', deletion: 'Deletion assistance', objection: 'Processing objection' })[request.type] || 'Privacy request'}</strong><span className="badge">{request.status || 'Pending'}</span></div><p>{request.message}</p><small>{request.createdAt ? new Date(request.createdAt).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recently submitted'}</small>{typeof (request.response || request.adminResponse) === 'string' && (request.response || request.adminResponse) && <div className="profile-request-response"><strong>Project team response</strong><p>{request.response || request.adminResponse}</p></div>}</li>)}</ul>}</section>
+      <details className="profile-delete-section"><summary>Delete my account</summary><p>This action anonymizes your account and removes active listings. Some records may be retained as described in the Privacy Notice. You will be signed out.</p><p>If you use Google sign-in and do not have a password, submit a deletion-assistance request above.</p><form className="account-form" onSubmit={deleteAccount}><div className="field"><label htmlFor="delete-account-password">Current password</label><input id="delete-account-password" type="password" autoComplete="current-password" required value={deletePassword} onChange={(e) => setDeletePassword(e.target.value)} /></div><div className="field"><label htmlFor="delete-account-confirm">Type DELETE to confirm</label><input id="delete-account-confirm" autoComplete="off" value={deleteConfirmation} onChange={(e) => setDeleteConfirmation(e.target.value)} required pattern="DELETE" /></div><button type="submit" className="btn btn-danger" disabled={!!privacyBusy}>{privacyBusy === 'delete' ? 'Deleting account…' : 'Permanently delete my account'}</button></form></details>
+      {privacyError && <p role="alert" className="inline-error"><Icon name="alert" size={20} />{privacyError}</p>}{privacyMessage && <p role="status" className="account-success"><Icon name="check-circle" size={21} />{privacyMessage}</p>}
+      </section>
       </div>
     </div>
-  );
+  </div>;
 }
+

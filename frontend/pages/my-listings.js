@@ -1,173 +1,116 @@
 import Head from 'next/head';
-import { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { useRouter } from 'next/router';
-import axios from 'axios';
+import Link from 'next/link';
+import Image from 'next/image';
+import { useCallback, useEffect, useState } from 'react';
+import { Dialog, DialogPanel, DialogTitle, Description } from '@headlessui/react';
+import api from '../lib/api';
 import toast from 'react-hot-toast';
+import { useAuth } from '../context/AuthContext';
+import Icon from '../components/Icon';
+import { EmptyBlock, LoadingBlock, StatusBadge } from '../components/WorkspaceUI';
+import { demoProducts, formatPrice } from '../lib/demo';
+
+const categories = ['Books', 'Electronics', 'Clothing', 'Food', 'Services', 'Others'];
+const conditions = ['New', 'Like New', 'Good', 'Fair'];
+const tabs = ['All listings', 'Active', 'Under review', 'Sold', 'Rejected'];
+function listingGroup(item) {
+  const status = item.status?.toLowerCase();
+  if (['active', 'approved'].includes(status)) return 'Active';
+  if (status === 'sold') return 'Sold';
+  if (status === 'rejected') return 'Rejected';
+  return 'Under review';
+}
 
 export default function MyListings() {
-  const { user, loading: authLoading } = useAuth();
-  const router = useRouter();
-  const [listings, setListings] = useState([]);
+  const { user, loading: authLoading, isPreview } = useAuth();
+  const [liveListings, setListings] = useState([]);
+  const [previewListings, setPreviewListings] = useState(() => demoProducts.filter((item) => item.sellerId === 'preview-student'));
   const [loading, setLoading] = useState(true);
-  
+  const [error, setError] = useState('');
+  const [activeTab, setActiveTab] = useState('All listings');
+  const [search, setSearch] = useState('');
+  const [sort, setSort] = useState('Newest first');
   const [editingProduct, setEditingProduct] = useState(null);
-  const [editForm, setEditForm] = useState({ title: '', price: '', category: '', condition: '', description: '' });
+  const [deletingProduct, setDeletingProduct] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState('');
+  const [editForm, setEditForm] = useState({ title: '', price: '', category: 'Books', condition: 'Good', description: '', warrantyTerms:'' });
+  const listings = isPreview ? previewListings : liveListings;
 
-  useEffect(() => {
-    if (!authLoading && !user) router.push('/login');
-    if (user) fetchMyListings();
-  }, [user, authLoading]);
+  const fetchMyListings = useCallback(() => {
+    if (!user || isPreview) return;
+    return api.get('/products/my-listings', { }).then((response) => {
+      setListings(Array.isArray(response.data) ? response.data : []);
+      setError('');
+    }).catch(() => setError('We could not load your listings. Check the connection and try again.'))
+      .finally(() => setLoading(false));
+  }, [user, isPreview]);
 
-  const fetchMyListings = async () => {
-    try {
-      const res = await axios.get('https://qcu-marketplace-b08m.onrender.com/api/products/my-listings', {
-        headers: { Authorization: `Bearer ${user.token}` }
-      });
-      setListings(res.data);
-    } catch (error) { console.error(error); } 
-    finally { setLoading(false); }
-  };
+  useEffect(() => { fetchMyListings(); }, [fetchMyListings]);
 
-  const handleEditClick = (item) => {
+  function edit(item) {
+    setFormError('');
     setEditingProduct(item);
-    setEditForm({
-      title: item.title,
-      price: item.price,
-      category: item.category || 'Others',
-      condition: item.condition || 'New',
-      description: item.description
-    });
-  };
+    setEditForm({ title: item.title, price: item.price, category: item.category || 'Others', condition: item.condition || 'Good', description: item.description || '', warrantyTerms:item.warrantyTerms||'No additional seller warranty. Applicable legal rights still apply.' });
+  }
 
-  const handleUpdateSubmit = async (e) => {
-    e.preventDefault();
+  async function updateListing(event) {
+    event.preventDefault();
+    if (!editForm.title.trim()) { setFormError('Add a name for your item.'); return; }
+    setSaving(true);
+    setFormError('');
     try {
-      await axios.put(`https://qcu-marketplace-b08m.onrender.com/api/products/${editingProduct._id}`, editForm, {
-        headers: { Authorization: `Bearer ${user.token}` }
-      });
-      toast.success("Listing updated successfully!");
+      if (isPreview) {
+        setPreviewListings((items) => items.map((item) => item._id === editingProduct._id ? { ...item, ...editForm, price: Number(editForm.price) } : item));
+        toast.success('Preview only: listing changes are shown locally.');
+      } else {
+        await api.put(`/products/${editingProduct._id}`, editForm, { });
+        toast.success('Listing updated and submitted for review.');
+        await fetchMyListings();
+      }
       setEditingProduct(null);
-      fetchMyListings(); 
-    } catch (error) {
-      toast.error("Failed to update listing.");
-    }
-  };
+    } catch { setFormError('Your changes could not be saved. Try again in a moment.'); }
+    finally { setSaving(false); }
+  }
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to permanently delete this listing?")) return;
+  async function deleteListing() {
+    setSaving(true);
+    setFormError('');
     try {
-      await axios.delete(`https://qcu-marketplace-b08m.onrender.com/api/products/${id}`, {
-        headers: { Authorization: `Bearer ${user.token}` }
-      });
-      toast.success("Listing deleted.");
-      fetchMyListings(); 
-    } catch (error) {
-      toast.error("Failed to delete listing.");
-    }
-  };
+      if (isPreview) {
+        setPreviewListings((items) => items.filter((item) => item._id !== deletingProduct._id));
+        toast.success('Preview only: listing removed from this view.');
+      } else {
+        await api.delete(`/products/${deletingProduct._id}`, { });
+        toast.success('Your listing has been deleted.');
+        await fetchMyListings();
+      }
+      setDeletingProduct(null);
+    } catch { setFormError('This listing could not be deleted. Please try again.'); }
+    finally { setSaving(false); }
+  }
 
-  if (authLoading || loading) return <div className="min-h-screen bg-[#F9F8F6] flex items-center justify-center text-gray-500">Loading...</div>;
+  const filteredListings = listings.filter((item) => (activeTab === 'All listings' || listingGroup(item) === activeTab) && `${item.title} ${item.category}`.toLowerCase().includes(search.toLowerCase())).sort((a, b) => sort === 'Price: low to high' ? Number(a.price) - Number(b.price) : sort === 'Price: high to low' ? Number(b.price) - Number(a.price) : new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
 
   return (
-    <div className="min-h-screen bg-[#F9F8F6] w-full pb-20 font-sans text-gray-800">
-      <Head><title>My Listings | QCU Marketplace</title></Head>
-      
-      <div className="max-w-[1000px] mx-auto px-6 py-10 w-full">
-        <div className="flex justify-between items-end mb-8 border-b border-gray-200 pb-5">
-          <div>
-            <h1 className="text-2xl font-semibold text-gray-900">My Listings</h1>
-            <p className="text-sm text-gray-500 mt-1">Manage your active products</p>
-          </div>
-          <button onClick={() => router.push('/sell')} className="bg-[#8A1C30] text-white px-5 py-2.5 rounded-full text-sm font-medium shadow-sm hover:bg-[#6c1525] transition-colors">
-            + New Listing
-          </button>
-        </div>
+    <div className="page-shell workspace-page">
+      <Head><title>My listings | QCU Buy & Sell</title></Head>
+      <div className="ws-page-top ws-listing-page-top"><div><p className="eyebrow">YOUR SELLER DESK</p><h1 className="page-heading">My listings<span className="ws-heading-dot">.</span></h1><p className="muted">Good things, ready for their next campus chapter.</p></div><div className="ws-listing-total"><strong>{(!isPreview && loading) || authLoading ? '—' : listings.length}</strong><span>items on<br />your seller desk</span></div></div>
+      <div className="ws-listing-action-bar"><div><Icon name="store" size={22} /><span>Keep the details fresh. Help your next buyer find you.</span></div><Link className="btn btn-primary" href="/sell"><Icon name="plus" size={20} /> Create a listing</Link></div>
+      <div className="ws-listings-summary"><span><strong>{listings.length}</strong> total listings</span><span><i />{listings.filter((item) => listingGroup(item) === 'Active').length} active on campus</span><span><Icon name="clock" size={15} />{listings.filter((item) => listingGroup(item) === 'Under review').length} under review</span></div>
+      <section className="panel ws-listings-panel">
+        <div className="ws-listing-controls"><div className="ws-tabs" aria-label="Filter listings by status">{tabs.map((tab) => <button key={tab} aria-pressed={activeTab === tab} className={activeTab === tab ? 'is-active' : ''} onClick={() => setActiveTab(tab)}>{tab}<span>{tab === 'All listings' ? listings.length : listings.filter((item) => listingGroup(item) === tab).length}</span></button>)}</div><div className="ws-listing-tools"><label className="ws-search"><Icon name="search" size={20} /><input type="search" aria-label="Search your listings" placeholder="Search by item or category" value={search} onChange={(event) => setSearch(event.target.value)} /></label><label className="ws-sort"><span>Sort</span><select aria-label="Sort listings" value={sort} onChange={(event) => setSort(event.target.value)}><option>Newest first</option><option>Price: low to high</option><option>Price: high to low</option></select></label></div></div>
+        {error ? <EmptyBlock icon="alert" title="A small connection hiccup" text={error} action={<button className="btn btn-secondary" onClick={fetchMyListings}>Try again</button>} /> : (!isPreview && loading) || authLoading ? <LoadingBlock text="Finding your listings…" /> : filteredListings.length ? <div className="ws-table-wrap" role="region" aria-label="Your listings"><table className="ws-listing-table"><caption className="sr-only">Manage your listings, prices, and review status.</caption><thead><tr><th>Item</th><th>Price</th><th>Status</th><th className="ws-actions-head">Manage</th></tr></thead><tbody>{filteredListings.map((item) => <tr key={item._id}><td><div className="ws-table-item"><div className="ws-item-thumb">{item.image ? <Image src={item.image} alt="" width={66} height={66} unoptimized /> : <Icon name="box" />}</div><div><h3>{item.title}</h3><p>{item.category} <span>·</span> {item.condition || 'Condition not specified'}</p></div></div></td><td className="ws-table-price">{formatPrice(item.price)}</td><td><StatusBadge status={item.status} /></td><td><div className="ws-listing-actions"><button className="btn btn-secondary" onClick={() => edit(item)} aria-label={`Edit ${item.title}`}><Icon name="edit" size={16} /><span>Edit</span></button><button className="ws-icon-button ws-delete-button" aria-label={`Delete ${item.title}`} onClick={() => { setDeletingProduct(item); setFormError(''); }}><Icon name="trash" size={18} /></button></div></td></tr>)}</tbody></table></div> : <EmptyBlock icon={search ? 'search' : 'box'} title={search || activeTab !== 'All listings' ? 'No listings match just yet' : 'Good things deserve a second chapter'} text={search || activeTab !== 'All listings' ? 'Try another search or view all your listings.' : 'List an item and connect with someone who needs it on campus.'} action={search || activeTab !== 'All listings' ? <button className="btn btn-secondary" onClick={() => { setSearch(''); setActiveTab('All listings'); }}>Clear filters</button> : <Link className="btn btn-primary" href="/sell"><Icon name="plus" size={17} /> List your first item</Link>} />}
+        <div className="ws-panel-foot"><Icon name="shield" size={16} /><span>Your listings help keep useful things in the QCU community.</span><span className="ws-result-count" role="status" aria-live="polite">{filteredListings.length} of {listings.length} listings</span></div>
+      </section>
+      <div className="ws-campus-reminder"><div className="ws-reminder-icon"><Icon name="camera" size={24} /></div><div><h3>Make your listing worth a closer look.</h3><p>Clear photos, an honest description, and a fair price help the right buyer find you.</p></div><Link className="ws-text-link" href="/safety">Trading guide <Icon name="arrow-up-right" size={20} /></Link></div>
 
-        {listings.length === 0 ? (
-          <div className="bg-white border border-gray-200 rounded-2xl py-20 flex flex-col items-center justify-center shadow-sm">
-            <div className="text-4xl opacity-30 mb-4">📦</div>
-            <h3 className="text-lg font-medium text-gray-800 mb-1">No listings found</h3>
-            <p className="text-sm text-gray-500 mb-6">Start selling to the QCU community!</p>
-            <button onClick={() => router.push('/sell')} className="bg-[#8A1C30] text-white px-6 py-2.5 rounded-full text-sm font-medium shadow-sm hover:bg-[#6c1525] transition-colors">
-              Post an Item
-            </button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-4">
-            {listings.map((item) => (
-              <div key={item._id} className="bg-white border border-gray-200 p-5 rounded-2xl flex flex-col md:flex-row items-start md:items-center gap-5 shadow-sm hover:shadow-md transition-all">
-                
-                <div className="w-full md:w-20 h-20 rounded-xl bg-gray-50 overflow-hidden shrink-0 flex items-center justify-center border border-gray-100">
-                  {item.image ? <img src={item.image} className="w-full h-full object-cover" /> : <span className="text-xs text-gray-400">No Image</span>}
-                </div>
-                
-                <div className="flex-1 w-full">
-                  <div className="flex gap-2 mb-1.5">
-                     <span className="bg-red-50 text-[#8A1C30] px-2.5 py-1 rounded text-xs font-medium">{item.category}</span>
-                     <span className="bg-gray-100 text-gray-600 px-2.5 py-1 rounded text-xs font-medium">{item.status || 'Active'}</span>
-                  </div>
-                  <h4 className="font-semibold text-gray-800 text-base">{item.title}</h4>
-                  <p className="text-lg font-bold text-[#8A1C30] mt-1">₱{item.price}</p>
-                </div>
-
-                <div className="flex gap-2 w-full md:w-auto mt-4 md:mt-0 border-t border-gray-100 md:border-none pt-4 md:pt-0">
-                  <button onClick={() => handleEditClick(item)} className="flex-1 md:flex-none bg-white text-gray-600 border border-gray-200 px-5 py-2 rounded-xl text-sm font-medium hover:bg-gray-50 hover:text-gray-800 transition-colors">Edit</button>
-                  <button onClick={() => handleDelete(item._id)} className="flex-1 md:flex-none bg-white text-red-500 border border-red-100 px-5 py-2 rounded-xl text-sm font-medium hover:bg-red-50 transition-colors">Delete</button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {editingProduct && (
-        <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-[500px] overflow-hidden p-6 animate-fadeInUp">
-             <div className="flex justify-between items-center mb-6 border-b border-gray-100 pb-3">
-               <h3 className="font-semibold text-gray-800 text-lg">Edit Listing</h3>
-               <button onClick={() => setEditingProduct(null)} className="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
-             </div>
-             
-             <form onSubmit={handleUpdateSubmit} className="space-y-4">
-                <div>
-                   <label className="text-xs text-gray-600 mb-1 block">Product Title</label>
-                   <input type="text" value={editForm.title} onChange={e => setEditForm({...editForm, title: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-lg py-2.5 px-3 text-sm outline-none focus:border-[#8A1C30]" required />
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                   <div>
-                      <label className="text-xs text-gray-600 mb-1 block">Price (₱)</label>
-                      <input type="number" value={editForm.price} onChange={e => setEditForm({...editForm, price: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-lg py-2.5 px-3 text-sm outline-none focus:border-[#8A1C30]" required />
-                   </div>
-                   <div>
-                      <label className="text-xs text-gray-600 mb-1 block">Condition</label>
-                      <select value={editForm.condition} onChange={e => setEditForm({...editForm, condition: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-lg py-2.5 px-3 text-sm outline-none focus:border-[#8A1C30]">
-                          <option>New</option><option>Like New</option><option>Used - Good</option><option>Used - Fair</option>
-                      </select>
-                   </div>
-                </div>
-
-                <div>
-                   <label className="text-xs text-gray-600 mb-1 block">Category</label>
-                   <select value={editForm.category} onChange={e => setEditForm({...editForm, category: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-lg py-2.5 px-3 text-sm outline-none focus:border-[#8A1C30]">
-                       <option>Books</option><option>Electronics</option><option>Clothing</option><option>Food</option><option>Services</option><option>Others</option>
-                   </select>
-                </div>
-
-                <div>
-                   <label className="text-xs text-gray-600 mb-1 block">Description</label>
-                   <textarea value={editForm.description} onChange={e => setEditForm({...editForm, description: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-lg py-2.5 px-3 text-sm outline-none focus:border-[#8A1C30] h-24 resize-none" required></textarea>
-                </div>
-
-                <div className="pt-2 flex gap-3">
-                  <button type="button" onClick={() => setEditingProduct(null)} className="flex-1 bg-white text-gray-600 border border-gray-200 py-2.5 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors">Cancel</button>
-                  <button type="submit" className="flex-1 bg-[#8A1C30] text-white py-2.5 rounded-lg text-sm font-medium shadow-sm hover:bg-[#6c1525] transition-colors">Save Changes</button>
-                </div>
-             </form>
-          </div>
-        </div>
-      )}
+      <Dialog open={Boolean(editingProduct)} onClose={() => !saving && setEditingProduct(null)} className="ws-dialog">
+        <div className="ws-dialog-backdrop" aria-hidden="true" /><div className="ws-dialog-position"><DialogPanel className="ws-dialog-panel"><div className="ws-dialog-head"><div><p className="eyebrow">LISTING DETAILS</p><DialogTitle>Edit your listing</DialogTitle></div><button className="ws-icon-button" aria-label="Close edit listing" onClick={() => setEditingProduct(null)} disabled={saving}><Icon name="x" /></button></div><Description className="muted ws-dialog-description">Keep the details helpful and accurate for your next buyer.</Description><form onSubmit={updateListing} className="ws-edit-form"><label className="field">Item name<input required maxLength={120} value={editForm.title} onChange={(event) => setEditForm({ ...editForm, title: event.target.value })} /></label><div className="form-grid"><label className="field">Price (₱)<input type="number" min="0" step="0.01" required value={editForm.price} onChange={(event) => setEditForm({ ...editForm, price: event.target.value })} /></label><label className="field">Condition<select value={editForm.condition} onChange={(event) => setEditForm({ ...editForm, condition: event.target.value })}>{conditions.map((condition) => <option key={condition}>{condition}</option>)}</select></label></div><label className="field">Category<select value={editForm.category} onChange={(event) => setEditForm({ ...editForm, category: event.target.value })}>{categories.map((category) => <option key={category}>{category}</option>)}</select></label><label className="field">Description<textarea rows={4} required maxLength={3000} value={editForm.description} onChange={(event) => setEditForm({ ...editForm, description: event.target.value })} /></label><label className="field">Seller warranty terms<textarea rows={3} required maxLength={2000} value={editForm.warrantyTerms} onChange={event=>setEditForm({...editForm,warrantyTerms:event.target.value})}/><span className="field-hint">State the period, coverage, and refund process, or explicitly state no additional seller warranty. You cannot waive applicable legal rights.</span></label>{isPreview && <p className="ws-preview-note"><Icon name="eye" size={15} />Preview changes stay on this screen.</p>}{formError && <p className="inline-error" role="alert">{formError}</p>}<div className="ws-dialog-actions"><button className="btn btn-secondary" type="button" disabled={saving} onClick={() => setEditingProduct(null)}>Cancel</button><button className="btn btn-primary" type="submit" disabled={saving}>{saving ? 'Saving…' : isPreview ? 'Preview changes' : 'Save changes'}<Icon name="check" size={17} /></button></div></form></DialogPanel></div>
+      </Dialog>
+      <Dialog open={Boolean(deletingProduct)} onClose={() => !saving && setDeletingProduct(null)} className="ws-dialog"><div className="ws-dialog-backdrop" aria-hidden="true" /><div className="ws-dialog-position"><DialogPanel className="ws-dialog-panel ws-confirm-panel"><div className="ws-confirm-icon"><Icon name="trash" size={25} /></div><DialogTitle>Remove this listing?</DialogTitle><Description className="muted">“{deletingProduct?.title}” will be removed from your listings.{!isPreview && ' This cannot be undone.'}</Description>{formError && <p className="inline-error" role="alert">{formError}</p>}<div className="ws-dialog-actions"><button data-autofocus className="btn btn-secondary" disabled={saving} onClick={() => setDeletingProduct(null)}>Keep listing</button><button className="btn ws-danger-button" disabled={saving} onClick={deleteListing}>{saving ? 'Removing…' : isPreview ? 'Remove in preview' : 'Delete listing'}</button></div></DialogPanel></div></Dialog>
     </div>
   );
 }
+
+

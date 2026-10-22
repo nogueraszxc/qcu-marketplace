@@ -1,13 +1,7 @@
 {
-  "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "Cross-Origin-Opener-Policy",
-          "value": "same-origin-allow-popups"
-        }
-      ]
-    }
-  ]
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "skipMiddlewareRequestBody": true,
+  "installCommand": "npm ci",
+  "buildCommand": "npm run build"
 }
