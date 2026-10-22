@@ -3,6 +3,16 @@ import { NextRequest, NextResponse } from 'next/server';
 
 // _app.getInitialProps keeps pages dynamic so every document uses its own nonce.
 export function proxy(request: NextRequest) {
+  // Production aliases must share the origin used by CSRF validation and cookies.
+  // Keep preview deployments separate from the production database.
+  if (process.env.VERCEL_ENV === 'production'
+    && ['GET', 'HEAD'].includes(request.method)
+    && !request.nextUrl.pathname.startsWith('/api/')
+    && request.nextUrl.hostname.endsWith('.vercel.app')
+    && request.nextUrl.hostname !== 'qcu-marketplace.vercel.app') {
+    const destination = new URL(request.nextUrl.pathname + request.nextUrl.search, 'https://qcu-marketplace.vercel.app');
+    return NextResponse.redirect(destination, 307);
+  }
   if (request.nextUrl.pathname.startsWith('/api/')) {
     const headers = new Headers(request.headers);
     // Never forward client-supplied internal authentication or client-IP headers.

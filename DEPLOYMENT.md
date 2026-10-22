@@ -15,6 +15,8 @@ Browser requests use same-origin `/api` paths. Vercel rewrites to the Render API
 
 The Vercel production environment includes the backend origin and private proxy key. Preview environments do not inherit the production key; their build intentionally requires separate configuration before they can connect to a writable backend. Never add arbitrary preview origins to the production allowlist.
 
+Production Vercel branch/deployment aliases redirect document GET/HEAD requests to the canonical website, preserving the path and query. Share `https://qcu-marketplace.vercel.app` with members. Account mutations still require the exact trusted origin and XMLHttpRequest header. The browser API timeout allows 90 seconds for Render Free cold starts without automatically retrying account writes.
+
 `skipMiddlewareRequestBody=true` lets the external rewrite receive upload JSON without proxy-body consumption. A live authenticated request carrying a 5 MiB image payload (6,990,553-byte JSON request) reached backend validation. The intentionally invalid title prevented any listing from being created.
 
 Database URI, proxy key, SMTP credentials, passwords and reset URLs belong only in private configuration. `.env`, `.local`, node_modules, build outputs and logs are excluded from Git and deployment uploads. Do not put real values in the example environment files.
@@ -23,7 +25,7 @@ Database URI, proxy key, SMTP credentials, passwords and reset URLs belong only 
 
 Brevo SMTP is configured on port 2525 with STARTTLS and a verified Chandler Noguera sender based on nogueraszxc@gmail.com. Brevo may rewrite the delivery address to its authenticated sending domain. The public support email remains noguera.chandler.espenilla@gmail.com. A real application password-reset email to the owner was confirmed **Delivered** in Brevo logs.
 
-At the authenticated operator's explicit request, the existing account noguera.chandler.espenilla@gmail.com was promoted to administrator and its password was reset to the operator's supplied value. Previous sessions and reset links were revoked. No password is included in these notes or source code. Production administrator sign-in and protected admin access were verified.
+At the operator's explicit request, the six original accounts other than `qcuadmin@gmail.com` were removed through the account cleanup service. The retained account has the administrator role and its password was reset to the operator's chosen value, revoking its previous sessions and reset links. Its production sign-in and sole-account status were verified at cleanup time. Future registrations create new student accounts normally. No password is included in these notes or source code.
 
 For future account creation use `backend/scripts/create-admin.cjs` with an explicit remote URI and `--allow-remote`. Its normal existing-account promotion workflow requires the current password. Do not add automatic admin promotion or a public bootstrap endpoint.
 

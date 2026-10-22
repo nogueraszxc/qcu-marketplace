@@ -5,7 +5,8 @@ export function isPreviewMode() { return false; }
 const api = axios.create({
   baseURL: '/api',
   withCredentials: true,
-  timeout: 15000,
+  // Render Free can take about a minute to wake after inactivity.
+  timeout: 90000,
   headers: { 'X-Requested-With': 'XMLHttpRequest' },
 });
 
